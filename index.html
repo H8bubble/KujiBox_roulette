@@ -37,6 +37,236 @@
   <link rel='stylesheet' href='assets/style.scss' />
 </head>
 <body>
+<!-- ============================================================
+     KUJI BOX 핀볼 간단 비밀번호 잠금
+     실제 비밀번호 원문은 넣지 않고 SHA-256 해시만 넣습니다.
+============================================================ -->
+<style>
+  #kujibox-auth-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    box-sizing: border-box;
+    background: #111111;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Pretendard, Arial, sans-serif;
+  }
+
+  #kujibox-auth-box {
+    width: min(390px, calc(100vw - 40px));
+    padding: 34px 30px 30px;
+    box-sizing: border-box;
+    border-radius: 20px;
+    background: #ffffff;
+    color: #222222;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  }
+
+  #kujibox-auth-logo {
+    margin-bottom: 8px;
+    font-size: 30px;
+    font-weight: 900;
+    letter-spacing: -1px;
+  }
+
+  #kujibox-auth-title {
+    margin: 0 0 6px;
+    font-size: 19px;
+    font-weight: 800;
+  }
+
+  #kujibox-auth-description {
+    margin: 0 0 22px;
+    color: #777777;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  #kujibox-password {
+    width: 100%;
+    height: 48px;
+    padding: 0 14px;
+    box-sizing: border-box;
+    border: 1px solid #dddddd;
+    border-radius: 10px;
+    outline: none;
+    background: #fafafa;
+    font-size: 16px;
+  }
+
+  #kujibox-password:focus {
+    border-color: #333333;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+  }
+
+  #kujibox-login-button {
+    width: 100%;
+    height: 48px;
+    margin-top: 12px;
+    border: 0;
+    border-radius: 10px;
+    background: #222222;
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  #kujibox-login-button:hover {
+    background: #000000;
+  }
+
+  #kujibox-login-button:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  #kujibox-auth-error {
+    min-height: 20px;
+    margin-top: 12px;
+    color: #d32f2f;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  #kujibox-auth-footer {
+    margin-top: 16px;
+    color: #aaaaaa;
+    font-size: 11px;
+  }
+</style>
+
+<div id="kujibox-auth-overlay">
+  <div id="kujibox-auth-box">
+    <div id="kujibox-auth-logo">KUJI BOX</div>
+    <h2 id="kujibox-auth-title">핀볼 접속</h2>
+    <p id="kujibox-auth-description">
+      쿠지박스 전용 페이지입니다.<br>
+      비밀번호를 입력해주세요.
+    </p>
+
+    <input
+      id="kujibox-password"
+      type="password"
+      placeholder="비밀번호"
+      autocomplete="current-password"
+    >
+
+    <button id="kujibox-login-button" type="button">
+      입장하기
+    </button>
+
+    <div id="kujibox-auth-error"></div>
+    <div id="kujibox-auth-footer">KUJI BOX · Private Roulette</div>
+  </div>
+</div>
+
+<script>
+  (() => {
+    // ==========================================================
+    // 중요: 실제 비밀번호를 적지 마세요.
+    // 터미널에서 만든 SHA-256 해시값만 아래에 넣으세요.
+    // ==========================================================
+    const PASSWORD_HASH = "864719ae68b543044f0791c541a642bd94d2305c577873ba04df895962d8f2f5";
+
+    // 같은 탭을 닫기 전까지는 다시 묻지 않습니다.
+    const AUTH_KEY = "kujibox-roulette-auth-v1";
+
+    async function sha256(text) {
+      const encoded = new TextEncoder().encode(text);
+      const buffer = await crypto.subtle.digest("SHA-256", encoded);
+
+      return Array.from(new Uint8Array(buffer))
+        .map(byte => byte.toString(16).padStart(2, "0"))
+        .join("");
+    }
+
+    function removeLockScreen() {
+      const overlay = document.getElementById("kujibox-auth-overlay");
+
+      if (!overlay) {
+        return;
+      }
+
+      overlay.style.opacity = "0";
+      overlay.style.transition = "opacity 0.18s ease";
+
+      window.setTimeout(() => {
+        overlay.remove();
+      }, 180);
+
+      document.body.style.overflow = "";
+    }
+
+    function unlockPage() {
+      sessionStorage.setItem(AUTH_KEY, "success");
+      removeLockScreen();
+    }
+
+    async function checkPassword() {
+      const input = document.getElementById("kujibox-password");
+      const button = document.getElementById("kujibox-login-button");
+      const error = document.getElementById("kujibox-auth-error");
+
+      const password = input.value;
+
+      if (!password) {
+        error.textContent = "비밀번호를 입력해주세요.";
+        input.focus();
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = "확인 중...";
+      error.textContent = "";
+
+      try {
+        const inputHash = await sha256(password);
+
+        if (inputHash === PASSWORD_HASH) {
+          unlockPage();
+          return;
+        }
+
+        error.textContent = "비밀번호가 올바르지 않습니다.";
+        input.value = "";
+        input.focus();
+      } catch (err) {
+        console.error("비밀번호 확인 오류:", err);
+        error.textContent = "비밀번호 확인 중 오류가 발생했습니다.";
+      } finally {
+        button.disabled = false;
+        button.textContent = "입장하기";
+      }
+    }
+
+    document.body.style.overflow = "hidden";
+
+    if (sessionStorage.getItem(AUTH_KEY) === "success") {
+      removeLockScreen();
+      return;
+    }
+
+    const input = document.getElementById("kujibox-password");
+    const button = document.getElementById("kujibox-login-button");
+
+    button.addEventListener("click", checkPassword);
+
+    input.addEventListener("keydown", event => {
+      if (event.key === "Enter") {
+        checkPassword();
+      }
+    });
+
+    input.focus();
+  })();
+</script>
+
 <script type="module" src="./src/index.ts"></script>
 <script type="text/javascript">
   window.dataLayer = window.dataLayer || [];
