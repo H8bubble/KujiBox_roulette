@@ -3,9 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <script defer src="https://umami.lazygyu.net/script.js"
-          data-website-id="205aee0d-30b6-4c69-a053-0c72c8377be0"></script>
 
+  <!-- ============================================================
+       Google Analytics 4
+       아래 GA_MEASUREMENT_ID 한 곳만 본인 측정 ID로 바꾸세요.
+       예: G-ABC123DEFG
+  ============================================================ -->
+  <script>
+    window.GA_MEASUREMENT_ID = "G-WSMOKT1RCY";
+
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () {
+      window.dataLayer.push(arguments);
+    };
+
+    window.gtag('js', new Date());
+    window.gtag('config', window.GA_MEASUREMENT_ID);
+
+    const gaScript = document.createElement('script');
+    gaScript.async = true;
+    gaScript.src =
+      'https://www.googletagmanager.com/gtag/js?id=' +
+      encodeURIComponent(window.GA_MEASUREMENT_ID);
+    document.head.appendChild(gaScript);
+  </script>
   <title>Marble Roulette</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="apple-touch-icon" sizes="57x57" href="assets/apple-icon-57x57.png">
@@ -229,6 +250,12 @@
         const inputHash = await sha256(password);
 
         if (inputHash === PASSWORD_HASH) {
+          if (typeof window.gtag === "function") {
+            window.gtag("event", "login_success", {
+              method: "password"
+            });
+          }
+
           unlockPage();
           return;
         }
@@ -269,15 +296,6 @@
 
 <script type="module" src="./src/index.ts"></script>
 <script type="text/javascript">
-  window.dataLayer = window.dataLayer || [];
-
-  function gtag() {
-    dataLayer.push(arguments);
-  }
-
-  gtag('js', new Date());
-  gtag('config', 'G-5899C1DJM0');
-
   function getNames() {
     const value = document.querySelector('#in_names').value.trim();
     return value.split(/[,\r\n]/g).map(v => v.trim()).filter(v => !!v);
@@ -402,22 +420,15 @@
 
     document.querySelector('#btnStart').addEventListener('click', () => {
       if (!ready) return;
-      gtag && gtag('event', 'start', {
-        'event_category': 'roulette',
-        'event_label': 'start',
-        'value': window.roulette.getCount(),
-      });
-      const names = getNames();
-      const marbles = names.map(n => {
-        const p = parseName(n);
-        return { name: p.name, count: p.count };
-      });
-      if (typeof umami !== 'undefined') {
-        umami.track('start', { count: window.roulette.getCount() });
-        marbles.forEach(m => {
-          umami.track('marble', { name: m.name, count: m.count });
+
+      // Google Analytics에는 참가자 닉네임을 보내지 않고
+      // 핀볼 시작 횟수와 공 개수만 기록합니다.
+      if (typeof window.gtag === 'function') {
+        window.gtag('event', 'roulette_start', {
+          marble_count: window.roulette.getCount()
         });
       }
+
       window.roulette.start();
       document.querySelector('#settings').classList.add('hide');
       document.querySelector('#donate').classList.add('hide');
