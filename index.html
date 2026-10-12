@@ -4,28 +4,20 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
-  <!-- ============================================================
-       Google Analytics 4
-       아래 GA_MEASUREMENT_ID 한 곳만 본인 측정 ID로 바꾸세요.
-       예: G-ABC123DEFG
-  ============================================================ -->
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-WSMOKT1RCY"></script>
+
   <script>
-    window.GA_MEASUREMENT_ID = "G-WSMOKT1RCY";
-
     window.dataLayer = window.dataLayer || [];
-    window.gtag = function () {
-      window.dataLayer.push(arguments);
-    };
 
-    window.gtag('js', new Date());
-    window.gtag('config', window.GA_MEASUREMENT_ID);
+    function gtag() {
+      dataLayer.push(arguments);
+    }
 
-    const gaScript = document.createElement('script');
-    gaScript.async = true;
-    gaScript.src =
-      'https://www.googletagmanager.com/gtag/js?id=' +
-      encodeURIComponent(window.GA_MEASUREMENT_ID);
-    document.head.appendChild(gaScript);
+    window.gtag = gtag;
+
+    gtag('js', new Date());
+    gtag('config', 'G-WSMOKT1RCY');
   </script>
   <title>Marble Roulette</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
